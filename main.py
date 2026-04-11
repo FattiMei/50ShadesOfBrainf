@@ -19,5 +19,4 @@ if __name__ == '__main__':
     with open(args.input_file, 'r') as file:
         src = file.read()
 
-    tokens = parse_source(src)
-    print(tokens)
+    print(parse_source(src))

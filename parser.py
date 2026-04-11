@@ -8,69 +8,97 @@ instructions with the position (row, col) in the original source.
 """
 
 
-from enum import Enum
+import ir
 
 
-class TokenType(Enum):
-    PLUS  = '+'
-    MINUS = '-'
-    MOVEL = '<'
-    MOVER = '>'
-    GETC  = ','
-    PUTC  = '.'
-    BZ    = '['
-    BNZ   = ']'
+LANGUAGE_TOKENS = '+-<>,.[]'
+CONTROL_TOKENS = '[]'
 
 
-class Token:
-    def __init__(self, ttype: TokenType, annotation=None):
-        self.ttype = ttype
-        self.annotation = annotation
+"""
+Returns a list of basic blocks and the first one is the entry point.
+It may fail when the program is ill-formed because of parenthesis mismatch.
+"""
+def parse_source(src: str) -> list[ir.BasicBlock]:
+    curr = ir.BasicBlock()
+    basic_blocks = [curr]
 
-    def __repr__(self) -> str:
-        if self.annotation is None:
-            return f'{{ {self.ttype} }}'
-        else:
-            return f'{{ {self.ttype} at {self.annotation} }}'
+    # this is the data structure I use for keeping track
+    # of which BB I still need to properly connect
+    bb_stack = []
 
-
-def parse_source(src: str) -> list[Token]:
-    tokens = []
-    row = 1
-    col = 1
-
+    row, col = 1, 1
     for c in src:
-        curr = None
-
         if c == '+':
-            curr = TokenType.PLUS
+            curr.append(ir.Increment())
         elif c == '-':
-            curr = TokenType.MINUS
+            curr.append(ir.Decrement())
         elif c == '<':
-            curr = TokenType.MOVEL
+            curr.append(ir.MoveLeft())
         elif c == '>':
-            curr = TokenType.MOVER
+            curr.append(ir.MoveRight())
         elif c == ',':
-            curr = TokenType.GETC
+            curr.append(ir.GetChar())
         elif c == '.':
-            curr = TokenType.PUTC
+            curr.append(ir.PutChar())
+
+        # we are at the end of the current basic block
+        # a branch instruction must be made
         elif c == '[':
-            curr = TokenType.BZ
+            next = ir.BasicBlock()
+            basic_blocks.append(next)
+
+            curr.append(
+                ir.BranchIfZero(
+                    target_block=None, # we don't know it yet
+                    fallthrough_block=next
+                )
+            )
+
+            assert(curr.is_well_formed())
+            bb_stack.append(curr)
+            curr = next
+
         elif c == ']':
-            curr = TokenType.BNZ
+            next = ir.BasicBlock()
+            basic_blocks.append(next)
 
-        if curr is not None:
-            if curr in [TokenType.BZ, TokenType.BNZ]:
-                token = Token(curr, (row,col))
+            if len(bb_stack) > 0:
+                old = bb_stack.pop()
+                assert(old.is_well_formed())
+                old.get_terminator().target_block = next
+
+                curr.append(
+                    ir.BranchIfNotZero(
+                        target_block=old.get_terminator().fallthrough_block,
+                        fallthrough_block=next
+                    )
+                )
+                curr = next
             else:
-                token = Token(curr)
+                print(f"[ERROR] parenthesis mismatch: found `]` at ({row},{col}) but the corresponding `[` was never opened")
+                return None
 
-            tokens.append(token)
-
+        # this is just some logic to figure out the position in the file...
         if c == '\n':
             row += 1
             col = 1
         else:
             col += 1
 
-    return tokens
+    # for a well formed program, all the parenthesis should be closed
+    if len(bb_stack) > 0:
+        print(f"[ERROR] there are still {len(bb_stack)} parenthesis to be closed")
+        return None
+
+    # at the end of the program we insert a return instruction
+    # so that every basic block is well formed
+    curr.append(ir.Return())
+
+    # we simply enumerate the basic blocks in the order
+    # they appear in the program. This is just for debugging
+    # purposes.
+    for i, bb in enumerate(basic_blocks):
+        bb.label = i
+
+    return basic_blocks
