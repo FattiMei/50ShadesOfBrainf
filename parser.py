@@ -9,10 +9,62 @@ instructions with the position (row, col) in the original source.
 
 
 import ir
+from enum import Enum
 
 
-LANGUAGE_TOKENS = '+-<>,.[]'
-CONTROL_TOKENS = '[]'
+class Token(Enum):
+    PLUS        = '+'
+    MINUS       = '-'
+    SHIFTL      = '<'
+    SHIFTR      = '>'
+    GETC        = ','
+    PUTC        = '.'
+    OPENPAREN   = '['
+    CLOSEDPAREN = ']'
+    END         = 0
+
+
+LANGUAGE_TOKENS = {
+    '+': Token.PLUS,
+    '-': Token.MINUS,
+    '<': Token.SHIFTL,
+    '>': Token.SHIFTR,
+    ',': Token.GETC,
+    '.': Token.PUTC,
+    '[': Token.OPENPAREN,
+    ']': Token.CLOSEDPAREN
+}
+
+
+"""
+This function is a generator for the program tokens, each token is
+annotated with the position in the file
+"""
+def token_generator(src: str):
+    row = 1
+    col = 1
+
+    for c in src:
+        if c in LANGUAGE_TOKENS:
+            yield (LANGUAGE_TOKENS[c], row, col)
+
+        if c == '\n':
+            row += 1
+            col = 1
+        else:
+            col += 1
+
+
+"""
+This function is a generator of basic block with increasing labels.
+The basic blocks generated are guaranteed to have unique labels
+"""
+def bb_generator():
+    count = 0
+
+    while True:
+        yield ir.BasicBlock(label=count)
+        count += 1
 
 
 """
@@ -20,85 +72,71 @@ Returns a list of basic blocks and the first one is the entry point.
 It may fail when the program is ill-formed because of parenthesis mismatch.
 """
 def parse_source(src: str) -> list[ir.BasicBlock]:
-    curr = ir.BasicBlock()
+    bb_gen = bb_generator()
+    curr = next(bb_gen)
     basic_blocks = [curr]
 
     # this is the data structure I use for keeping track
     # of which BB I still need to properly connect
     bb_stack = []
 
-    row, col = 1, 1
-    for c in src:
-        if c == '+':
+    for (token, row, col) in token_generator(src):
+        if token == Token.PLUS:
             curr.append(ir.Increment())
-        elif c == '-':
+        elif token == Token.MINUS:
             curr.append(ir.Decrement())
-        elif c == '<':
+        elif token == Token.SHIFTL:
             curr.append(ir.MoveLeft())
-        elif c == '>':
+        elif token == Token.SHIFTR:
             curr.append(ir.MoveRight())
-        elif c == ',':
+        elif token == Token.GETC:
             curr.append(ir.GetChar())
-        elif c == '.':
+        elif token == Token.PUTC:
             curr.append(ir.PutChar())
 
         # we are at the end of the current basic block
-        # a branch instruction must be made
-        elif c == '[':
-            next = ir.BasicBlock()
-            basic_blocks.append(next)
+        elif token == Token.OPENPAREN:
+            new = next(bb_gen)
+            basic_blocks.append(new)
 
             curr.append(
                 ir.BranchIfZero(
                     target_block=None, # we don't know it yet
-                    fallthrough_block=next
+                    fallthrough_block=new,
+                    debug_info=(row,col)
                 )
             )
 
-            assert(curr.is_well_formed())
             bb_stack.append(curr)
-            curr = next
+            curr = new
 
-        elif c == ']':
-            next = ir.BasicBlock()
-            basic_blocks.append(next)
+        elif token == Token.CLOSEDPAREN:
+            new = next(bb_gen)
+            basic_blocks.append(new)
 
-            if len(bb_stack) > 0:
-                old = bb_stack.pop()
-                assert(old.is_well_formed())
-                old.get_terminator().target_block = next
-
-                curr.append(
-                    ir.BranchIfNotZero(
-                        target_block=old.get_terminator().fallthrough_block,
-                        fallthrough_block=next
-                    )
-                )
-                curr = next
-            else:
-                print(f"[ERROR] parenthesis mismatch: found `]` at ({row},{col}) but the corresponding `[` was never opened")
+            if len(bb_stack) == 0:
+                print(f"ERROR: found `]` at ({row},{col}) but the corresponding `[` was never opened")
                 return None
 
-        # this is just some logic to figure out the position in the file...
-        if c == '\n':
-            row += 1
-            col = 1
-        else:
-            col += 1
+            old = bb_stack.pop()
+            old.get_terminator().target_block = new
 
-    # for a well formed program, all the parenthesis should be closed
+            curr.append(
+                ir.BranchIfNotZero(
+                    target_block=old.get_terminator().fallthrough_block,
+                    fallthrough_block=new
+                )
+            )
+            curr = new
+
+    # in a well formed program all the parenthesis should be closed
     if len(bb_stack) > 0:
-        print(f"[ERROR] there are still {len(bb_stack)} parenthesis to be closed")
+        missing_closing = [bb.get_terminator().debug_info for bb in bb_stack]
+        print(f"ERROR: some parenthesis are still to be closed at {missing_closing}")
         return None
 
     # at the end of the program we insert a return instruction
     # so that every basic block is well formed
     curr.append(ir.Return())
-
-    # we simply enumerate the basic blocks in the order
-    # they appear in the program. This is just for debugging
-    # purposes.
-    for i, bb in enumerate(basic_blocks):
-        bb.label = i
 
     return basic_blocks

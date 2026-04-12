@@ -107,27 +107,29 @@ class PutChar(Instruction):
 
 
 class BranchIfZero(Instruction):
-    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock):
+    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock, debug_info = None):
         self.target_block = target_block
         self.fallthrough_block = fallthrough_block
+        self.debug_info = debug_info
 
     def get_token(self) -> str:
         return '['
 
     def __repr__(self) -> str:
-        return f'BranchIfZero(target_block={self.target_block}, fallthrough_block={self.fallthrough_block})'
+        return f'BranchIfZero(target_block={self.target_block.label}, fallthrough_block={self.fallthrough_block.label})'
 
 
 class BranchIfNotZero(Instruction):
-    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock):
+    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock, debug_info = None):
         self.target_block = target_block
         self.fallthrough_block = fallthrough_block
+        self.debug_info = debug_info
 
     def get_token(self) -> str:
         return ']'
 
     def __repr__(self) -> str:
-        return f'BranchIfNotZero(target_block={self.target_block}, fallthrough_block={self.fallthrough_block})'
+        return f'BranchIfNotZero(target_block={self.target_block.label}, fallthrough_block={self.fallthrough_block.label})'
 
 """
 This instruction encodes the end of the program
