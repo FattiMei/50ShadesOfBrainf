@@ -37,6 +37,14 @@ class BasicBlock:
     def get_terminator(self) -> Instruction:
         return self.instructions[-1]
 
+    def get_successors(self) -> list:
+        terminator = self.get_terminator()
+
+        if type(terminator) == Return:
+            return []
+
+        return [terminator.fallthrough_block, terminator.target_block]
+
     def is_well_formed(self) -> bool:
         BRANCH_INSTRUCTIONS = [BranchIfZero, BranchIfNotZero, Return]
 
@@ -75,7 +83,21 @@ class Program:
         return ALL_TRUE(bb.is_well_formed() for bb in self.basic_blocks)
 
     def are_bb_reachable(self) -> bool:
-        return True
+        # simple graph reachability implementation
+        explored = set()
+        queue = [self.get_entry_point()]
+
+        while len(queue) > 0:
+            curr = queue.pop()
+
+            if curr not in explored:
+                explored.add(curr)
+
+                for succ in curr.get_successors():
+                    if succ not in explored:
+                        queue.append(succ)
+
+        return explored == set(self.basic_blocks)
 
     def __repr__(self) -> str:
         return f'{self.basic_blocks}'

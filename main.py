@@ -29,7 +29,7 @@ if __name__ == '__main__':
         exit(1)
 
     assert(program.are_bb_well_formed())
-    # assert(program.are_bb_reachable())
+    assert(program.are_bb_reachable())
 
     # # if the program is well formed and the parsing function is correct,
     # # one could generate the original source from the intermediate representation
