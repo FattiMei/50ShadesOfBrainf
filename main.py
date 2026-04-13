@@ -10,31 +10,42 @@ code generation for multiple targets
 import ir
 import parser
 import codegen
+import runtime
 import argparse
 
 
 def parse_cmd_line_args():
     argparser = argparse.ArgumentParser(prog="bfcom")
-    argparser.add_argument("input_file", type=str, help="which file to compile")
+    argparser.add_argument("input_file", type=str, nargs='+', help="which file to compile")
 
     return argparser.parse_args()
 
 
 if __name__ == '__main__':
     args = parse_cmd_line_args()
-    with open(args.input_file, 'r') as file:
-        src = file.read()
 
-    program = parser.parse_source(src)
-    if program is None:
-        exit(1)
+    for input_file in args.input_file:
+        with open(input_file, 'r') as file:
+            src = file.read()
 
-    assert(program.are_bb_well_formed())
-    assert(program.are_bb_reachable())
+        program = parser.parse_source(src)
+        if program is None:
+            exit(1)
 
-    filtered_src = ''.join(filter(lambda c: c in parser.LANGUAGE_TOKENS, src))
-    reconstructed_src = codegen.generate_original_src(program)
-    assert(filtered_src == reconstructed_src)
+        assert(program.are_bb_well_formed())
+        assert(program.are_bb_reachable())
 
-    cloned_program = program.deepcopy()
-    assert(cloned_program.are_bb_reachable())
+        filtered_src = ''.join(filter(lambda c: c in parser.LANGUAGE_TOKENS, src))
+        reconstructed_src = codegen.generate_original_src(program)
+        assert(filtered_src == reconstructed_src)
+
+        cloned_program = program.deepcopy()
+        assert(cloned_program.are_bb_reachable())
+
+        executor = runtime.IrRuntime(ncells=30000)
+        status = executor.run(program)
+
+        if status.ok:
+            print(status.stdout)
+
+        print(status)
