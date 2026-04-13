@@ -42,10 +42,5 @@ if __name__ == '__main__':
         cloned_program = program.deepcopy()
         assert(cloned_program.are_bb_reachable())
 
-        executor = runtime.IrRuntime(ncells=30000)
-        status = executor.run(program)
-
-        if status.ok:
-            print(status.stdout)
-
-        print(status)
+        print(codegen.generate_x86(program))
+        print(codegen.generate_arm(program))
