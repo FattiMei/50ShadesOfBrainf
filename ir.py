@@ -10,16 +10,19 @@ as the nodes of a control flow graph.
 """
 
 
+from functools import reduce
+
+
+ALL_TRUE = lambda xs: reduce(lambda x,y: x and y, xs, True)
+
+
 class Instruction:
     def __init__(self):
         pass
 
-    def get_token(self) -> str:
-        pass
-
 
 class BasicBlock:
-    # default mutable arguments are a source of bugs!!
+    # default mutable arguments are a source of bugs                         v
     def __init__(self, label: int = None, instructions: list[Instruction] = None):
         self.label = label
 
@@ -35,10 +38,47 @@ class BasicBlock:
         return self.instructions[-1]
 
     def is_well_formed(self) -> bool:
-        return type(self.get_terminator()) in [BranchIfZero, BranchIfNotZero, Return]
+        BRANCH_INSTRUCTIONS = [BranchIfZero, BranchIfNotZero, Return]
+
+        is_terminator_branch = type(self.get_terminator()) in BRANCH_INSTRUCTIONS
+        are_other_non_branch = ALL_TRUE(
+            map(
+                lambda instr: type(instr) not in BRANCH_INSTRUCTIONS,
+                self.instructions[:-1]
+            )
+        )
+
+        return is_terminator_branch and are_other_non_branch
 
     def __repr__(self) -> str:
         return f'BasicBlock({self.label}, {self.instructions})'
+
+
+"""
+This class is the container of basic blocks. It's the output of
+the parsing function and stores all basic blocks plus the entry point
+
+It will be the input of the optimization passes and the code generation.
+It will store important flags about the ir used in its blocks:
+  * contains fused operators?
+  * are only original instructions?
+  * ...
+"""
+class Program:
+    def __init__(self, basic_blocks: list[BasicBlock]):
+        self.basic_blocks = basic_blocks
+
+    def get_entry_point(self) -> BasicBlock:
+        return self.basic_blocks[0]
+
+    def are_bb_well_formed(self) -> bool:
+        return ALL_TRUE(bb.is_well_formed() for bb in self.basic_blocks)
+
+    def are_bb_reachable(self) -> bool:
+        return True
+
+    def __repr__(self) -> str:
+        return f'{self.basic_blocks}'
 
 
 class Increment(Instruction):

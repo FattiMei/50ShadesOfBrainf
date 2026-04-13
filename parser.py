@@ -71,7 +71,7 @@ def bb_generator():
 Returns a list of basic blocks and the first one is the entry point.
 It may fail when the program is ill-formed because of parenthesis mismatch.
 """
-def parse_source(src: str) -> list[ir.BasicBlock]:
+def parse_source(src: str) -> ir.Program:
     bb_gen = bb_generator()
     curr = next(bb_gen)
     basic_blocks = [curr]
@@ -139,4 +139,31 @@ def parse_source(src: str) -> list[ir.BasicBlock]:
     # so that every basic block is well formed
     curr.append(ir.Return())
 
-    return basic_blocks
+    return ir.Program(basic_blocks)
+
+
+"""
+This function is the inverse of the parse_src function.
+It generates the source code (without comments or formatting) from the
+intermediate representation.
+
+It's used for testing the correctness of parsing or optimization passes
+
+But this should be a codegen!!! So I need to move it to another file
+"""
+def reconstruct_src(entry_point: ir.BasicBlock) -> str:
+    res = ''
+    end = False
+    curr = entry_point
+
+    while not end:
+        for instr in curr.instructions:
+            res += instr.get_token()
+
+        terminator = curr.get_terminator()
+        if type(terminator) == ir.Return:
+            end = True
+        else:
+            curr = terminator.fallthrough_block
+
+    return res
