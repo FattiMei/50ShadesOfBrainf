@@ -35,3 +35,6 @@ if __name__ == '__main__':
     filtered_src = ''.join(filter(lambda c: c in parser.LANGUAGE_TOKENS, src))
     reconstructed_src = codegen.generate_original_src(program)
     assert(filtered_src == reconstructed_src)
+
+    cloned_program = program.deepcopy()
+    assert(cloned_program.are_bb_reachable())

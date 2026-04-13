@@ -10,6 +10,7 @@ as the nodes of a control flow graph.
 """
 
 
+from enum import Enum
 from functools import reduce
 
 
@@ -19,6 +20,11 @@ ALL_TRUE = lambda xs: reduce(lambda x,y: x and y, xs, True)
 class Instruction:
     def __init__(self):
         pass
+
+
+class IrFlags(Enum):
+    ORIGINAL_INSTRUCTIONS = 0
+    FUSED_INSTRUCTIONS = 1
 
 
 class BasicBlock:
@@ -37,13 +43,19 @@ class BasicBlock:
     def get_terminator(self) -> Instruction:
         return self.instructions[-1]
 
-    def get_successors(self) -> list:
+    def get_successors(self) -> list["BasicBlock"]:
         terminator = self.get_terminator()
 
         if type(terminator) == Return:
             return []
 
         return [terminator.fallthrough_block, terminator.target_block]
+
+    def deepcopy(self) -> "BasicBlock":
+        return BasicBlock(
+            label=self.label,
+            instructions=self.instructions.copy()
+        )
 
     def is_well_formed(self) -> bool:
         BRANCH_INSTRUCTIONS = [BranchIfZero, BranchIfNotZero, Return]
@@ -75,9 +87,39 @@ It will store important flags about the ir used in its blocks:
 class Program:
     def __init__(self, basic_blocks: list[BasicBlock]):
         self.basic_blocks = basic_blocks
+        self.ir_flags = set()
+
+        self.ir_flags.add(IrFlags.ORIGINAL_INSTRUCTIONS)
 
     def get_entry_point(self) -> BasicBlock:
         return self.basic_blocks[0]
+
+    def get_ir_flags(self) -> set[IrFlags]:
+        return self.ir_flags
+
+    def deepcopy(self) -> "Program":
+        # only copying the basic blocks without updating
+        # the connections is wrong. Thankfully this bug is
+        # detected by `are_bb_reachable`
+        #   return Program(basic_blocks=[bb.deepcopy() for bb in self.basic_blocks])
+
+        # I think using labels as indices for later bookkeeping
+        # of the data structures is a pattern in compiler design
+        cloned_bb = {
+            bb.label: bb.deepcopy()
+            for bb in self.basic_blocks
+        }
+
+        # fixing the edges
+        for bb in cloned_bb.values():
+            terminator = bb.get_terminator()
+
+            if type(terminator) in [BranchIfZero, BranchIfNotZero]:
+                terminator.target_block = cloned_bb[terminator.target_block.label]
+                terminator.fallthrough_block = cloned_bb[terminator.fallthrough_block.label]
+
+        return Program(list(cloned_bb.values()))
+
 
     def are_bb_well_formed(self) -> bool:
         return ALL_TRUE(bb.is_well_formed() for bb in self.basic_blocks)
