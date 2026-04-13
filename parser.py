@@ -140,30 +140,3 @@ def parse_source(src: str) -> ir.Program:
     curr.append(ir.Return())
 
     return ir.Program(basic_blocks)
-
-
-"""
-This function is the inverse of the parse_src function.
-It generates the source code (without comments or formatting) from the
-intermediate representation.
-
-It's used for testing the correctness of parsing or optimization passes
-
-But this should be a codegen!!! So I need to move it to another file
-"""
-def reconstruct_src(entry_point: ir.BasicBlock) -> str:
-    res = ''
-    end = False
-    curr = entry_point
-
-    while not end:
-        for instr in curr.instructions:
-            res += instr.get_token()
-
-        terminator = curr.get_terminator()
-        if type(terminator) == ir.Return:
-            end = True
-        else:
-            curr = terminator.fallthrough_block
-
-    return res

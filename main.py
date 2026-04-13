@@ -9,6 +9,7 @@ code generation for multiple targets
 
 import ir
 import parser
+import codegen
 import argparse
 
 
@@ -31,8 +32,6 @@ if __name__ == '__main__':
     assert(program.are_bb_well_formed())
     assert(program.are_bb_reachable())
 
-    # # if the program is well formed and the parsing function is correct,
-    # # one could generate the original source from the intermediate representation
-    # filtered_src = ''.join(filter(lambda c: c in parser.LANGUAGE_TOKENS, src))
-    # reconstructed_src = parser.reconstruct_src(basic_blocks[0])
-    # assert(filtered_src == reconstructed_src)
+    filtered_src = ''.join(filter(lambda c: c in parser.LANGUAGE_TOKENS, src))
+    reconstructed_src = codegen.generate_original_src(program)
+    assert(filtered_src == reconstructed_src)
