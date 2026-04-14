@@ -113,6 +113,7 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
                 lines += ['ret']
                 end = True
 
+    lines += ['']
 
     return '\n'.join(lines)
 
@@ -187,6 +188,8 @@ def generate_arm(program: ir.Program) -> str:
             elif type(instr) == ir.Return:
                 lines += ['pop {fp, pc}']
                 end = True
+
+    lines += ['']
 
     return '\n'.join(lines)
 
