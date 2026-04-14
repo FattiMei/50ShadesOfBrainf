@@ -8,6 +8,7 @@ code generation for multiple targets
 
 
 import ir
+import opt
 import parser
 import codegen
 
@@ -23,7 +24,8 @@ def parse_cmd_line_args():
     parser.add_argument('-o', type=str, default='out', help='the final executable name')
     parser.add_argument('--output-asm', action='store_true')
 
-    # later, which optimizations to perform
+    # later I will select which specific optimizations to enable
+    parser.add_argument('--opt', action='store_true', help='enables optimizations')
 
     return parser.parse_args()
 
@@ -60,6 +62,15 @@ if __name__ == '__main__':
     cloned_program = program.deepcopy()
     assert(cloned_program.are_bb_reachable())
 
+    # optimization pass, to be selected only if the user requires so
+    if args.opt:
+        print("Performing instruction fusion...")
+        opt.instruction_fusion_pass(program)
+
+    # it's strange that this assertion holds, maybe I need to test more completely the deepcopy
+    # function
+    assert(codegen.generate_original_src(cloned_program) == codegen.generate_original_src(program))
+
     machine = os.uname().machine
     if machine == 'x86_64':
         assembly = codegen.generate_x86(program)
@@ -74,7 +85,7 @@ if __name__ == '__main__':
         with open(args.o + '.s', 'w') as fp:
             fp.write(assembly)
 
-    with tempfile.NamedTemporaryFile(mode='w', delete_on_close=False, suffix='.s') as fp:
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.s') as fp:
         fp.write(assembly)
         fp.close()
 

@@ -74,17 +74,17 @@ class BasicBlock:
         return f'BasicBlock({self.label}, {self.instructions})'
 
 
-"""
-This class is the container of basic blocks. It's the output of
-the parsing function and stores all basic blocks plus the entry point
-
-It will be the input of the optimization passes and the code generation.
-It will store important flags about the ir used in its blocks:
-  * contains fused operators?
-  * are only original instructions?
-  * ...
-"""
 class Program:
+    """
+    This class is the container of basic blocks. It's the output of
+    the parsing function and stores all basic blocks plus the entry point
+
+    It will be the input of the optimization passes and the code generation.
+    It will store important flags about the ir used in its blocks:
+    * contains fused operators?
+    * are only original instructions?
+    * ...
+    """
     def __init__(self, basic_blocks: list[BasicBlock]):
         self.basic_blocks = basic_blocks
         self.ir_flags = set()
@@ -152,6 +152,11 @@ class Increment(Instruction):
     def get_token(self) -> str:
         return '+' * self.imm
 
+    def get_signed_imm(self) -> int:
+        """
+        """
+        return self.imm
+
     def __repr__(self) -> str:
         return f'Increment({self.imm})'
 
@@ -162,6 +167,9 @@ class Decrement(Instruction):
 
     def get_token(self) -> str:
         return '-' * self.imm
+
+    def get_signed_imm(self) -> int:
+        return -self.imm
 
     def __repr__(self) -> str:
         return f'Decrement({self.imm})'
@@ -174,8 +182,12 @@ class MoveLeft(Instruction):
     def get_token(self) -> str:
         return '<' * self.imm
 
+    def get_signed_imm(self) -> int:
+        return -self.imm
+
     def __repr__(self) -> str:
         return f'MoveLeft({self.imm})'
+
 
 class MoveRight(Instruction):
     def __init__(self, imm: int = 1):
@@ -183,6 +195,9 @@ class MoveRight(Instruction):
 
     def get_token(self) -> str:
         return '>' * self.imm
+
+    def get_signed_imm(self) -> int:
+        return self.imm
 
     def __repr__(self) -> str:
         return f'MoveRight({self.imm})'
@@ -235,14 +250,15 @@ class BranchIfNotZero(Instruction):
     def __repr__(self) -> str:
         return f'BranchIfNotZero(target_block={self.target_block.label}, fallthrough_block={self.fallthrough_block.label})'
 
-"""
-This instruction encodes the end of the program
-it is useful for keeping the basic block interface, since
-I expect every BB to end with a terminator instruction
 
-I also plan on using this instruction for the runtimes
-"""
 class Return(Instruction):
+    """
+    This instruction encodes the end of the program
+    it is useful for keeping the basic block interface, since
+    I expect every BB to end with a terminator instruction
+
+    I also plan on using this instruction for the runtimes
+    """
     def __init__(self):
         pass
 
