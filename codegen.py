@@ -150,10 +150,10 @@ def generate_armv6l(program: ir.Program) -> str:
                 lines += [f'strb {val}, [{head}]']
 
             elif type(instr) == ir.MoveLeft:
-                lines += [f'sub {val}, #{instr.imm}']
+                lines += [f'sub {head}, #{instr.imm}']
 
             elif type(instr) == ir.MoveRight:
-                lines += [f'add {val}, #{instr.imm}']
+                lines += [f'add {head}, #{instr.imm}']
 
             elif type(instr) == ir.GetChar:
                 # it should be a syscall to getchar()
