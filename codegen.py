@@ -122,7 +122,7 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
 For the arm backend the problem of storing only a single byte
 doesn't exist as there is a `strb` instruction
 """
-def generate_arm(program: ir.Program) -> str:
+def generate_armv6l(program: ir.Program) -> str:
     lines = []
     end = False
     curr = program.get_entry_point()
@@ -160,7 +160,7 @@ def generate_arm(program: ir.Program) -> str:
                 assert(False)
 
             elif type(instr) == ir.PutChar:
-                lines += [f'push {head}']
+                lines += [f'push {{ {head} }}']
                 lines += [f'ldr r0, [{head}]']
                 lines += [f'bl putchar']
                 lines += [f'pop {{ {head} }}']

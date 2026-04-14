@@ -21,6 +21,7 @@ def parse_cmd_line_args():
     parser = argparse.ArgumentParser(prog="bfcom")
     parser.add_argument("input_file", type=str, help="which file to compile")
     parser.add_argument('-o', type=str, default='out', help='the final executable name')
+    parser.add_argument('--output-asm', action='store_true')
 
     # later, which optimizations to perform
 
@@ -62,16 +63,20 @@ if __name__ == '__main__':
     machine = os.uname().machine
     if machine == 'x86_64':
         assembly = codegen.generate_x86(program)
-    elif machine in ['aarch64']:
-        assembly = codegen.generate_arm(program)
+    elif machine in ['armv6l']:
+        assembly = codegen.generate_armv6l(program)
     else:
         print(f'`{machine}` is unsupported')
         print("Compilation interrupted at codegen stage")
         exit(1)
 
+    if args.output_asm:
+        with open(args.o + '.s', 'w') as fp:
+            fp.write(assembly)
+
     with tempfile.NamedTemporaryFile(mode='w', delete_on_close=False, suffix='.s') as fp:
         fp.write(assembly)
         fp.close()
 
-        cmd = ['gcc', '-o', args.o, 'runtime.c', fp.name]
+        cmd = ['gcc', '-g', '-o', args.o, 'runtime.c', fp.name]
         res = subprocess.run(cmd)
