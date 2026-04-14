@@ -84,7 +84,7 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
                 lines += [f'push {head}']
                 lines += [f'mov ({head}), %rdi']
                 lines += ['call putchar']
-                lines += ['pop {head}']
+                lines += [f'pop {head}']
 
             elif type(instr) == ir.BranchIfZero:
                 target_block = instr.target_block
@@ -105,13 +105,14 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
                 lines += [f'mov ({head}), {val}']
                 lines += [f'and $255, {val}']
                 lines += [f'cmp $0, {val}']
-                lines += [f'jz .L{target_block.label}']
+                lines += [f'jnz .L{target_block.label}']
 
                 curr = instr.fallthrough_block
 
             elif type(instr) == ir.Return:
                 lines += ['ret']
                 end = True
+
 
     return '\n'.join(lines)
 
