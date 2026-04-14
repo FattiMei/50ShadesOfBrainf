@@ -5,10 +5,10 @@ import ir
 from enum import Enum
 
 
-"""
-This function generates the unformatted source code from the IR
-"""
 def generate_original_src(program: ir.Program) -> str:
+    """
+    This function generates the unformatted source code from the IR
+    """
     res = ''
     end = False
     curr = program.get_entry_point()
@@ -25,20 +25,21 @@ def generate_original_src(program: ir.Program) -> str:
 
     return res
 
+def generate_x86(program: ir.Program, head_register: str = '%rax', val_register: str = '%bl') -> str:
+    """
+    This function generates the x86 assembly code for the function run(char *) that
+    implements `program`
 
-"""
-This function generates the x86 assembly code for the function run(char *) that
-implements `program`
+    We don't have the concept of registers in the IR, so all the decisions are hardcoded here.
+    * where to store the pointer to the memory tape
+    * where to store the cell value for local processing before storing it
 
-We don't have the concept of registers in the IR, so all the decisions are hardcoded here.
-  * where to store the pointer to the memory tape
-  * where to store the cell value for local processing before storing it
+    It's important that `val_register` is an 8-bit register, otherwise the store operations like
+        mov %rbx, [%rax]
 
-I'm still uncertain about using %rbx as the source value in a store instruction. The memory
-tape is made of bytes, so the instruction `mov %rbx, (%rax)` may overwrite the adjacent
-memory cells. This must be tested
-"""
-def generate_x86(program: ir.Program, head_register: str = '%rax', val_register: str = '%rbx') -> str:
+    will write 8 bytes and so will overwrite adjacent cells. The "samples/sierpinski.b" program
+    suffers from this phenomenon
+    """
     lines = []
     end = False
     curr = program.get_entry_point()
@@ -90,10 +91,6 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
                 target_block = instr.target_block
 
                 lines += [f'mov ({head}), {val}']
-
-                # with this trick, I avoid using special register
-                # names to address only the LSB
-                lines += [f'and $255, {val}']
                 lines += [f'cmp $0, {val}']
                 lines += [f'jz .L{target_block.label}']
 
@@ -103,7 +100,6 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
                 target_block = instr.target_block
 
                 lines += [f'mov ({head}), {val}']
-                lines += [f'and $255, {val}']
                 lines += [f'cmp $0, {val}']
                 lines += [f'jnz .L{target_block.label}']
 
@@ -118,11 +114,11 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
     return '\n'.join(lines)
 
 
-"""
-For the arm backend the problem of storing only a single byte
-doesn't exist as there is a `strb` instruction
-"""
 def generate_armv6l(program: ir.Program) -> str:
+    """
+    For the arm backend the problem of storing only a single byte
+    doesn't exist as there is a `strb` instruction
+    """
     lines = []
     end = False
     curr = program.get_entry_point()
