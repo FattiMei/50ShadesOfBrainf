@@ -24,6 +24,12 @@ def parse_cmd_line_args():
     parser.add_argument('-o', type=str, default='out', help='the final executable name')
     parser.add_argument('--output-asm', action='store_true')
 
+    # this option is strange: normally I use the compiler to compile runtime.c
+    # and assemble my generated assembly. The optimization flag seems to be very
+    # important as -O2 builds are significantly faster (twice as fast for mandelbrot).
+    # Asking Gemini, GCC seems to skip optimizations on the assembly file...
+    parser.add_argument('--compiler-opt-level', type=str, default='O2')
+
     # later I will select which specific optimizations to enable
     parser.add_argument('--opt', action='store_true', help='enables optimizations')
 
@@ -89,5 +95,5 @@ if __name__ == '__main__':
         fp.write(assembly)
         fp.close()
 
-        cmd = ['gcc', '-g', '-o', args.o, 'runtime.c', fp.name]
+        cmd = ['gcc', '-g', f'-{args.compiler_opt_level}', '-o', args.o, 'runtime.c', fp.name]
         res = subprocess.run(cmd)

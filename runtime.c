@@ -6,11 +6,10 @@ void run(char *memory);
 #endif
 
 
-char memory[MEMORY_SIZE];
+char memory[MEMORY_SIZE] = {0};
 
 
 int main() {
-	for (int i = 0; i < MEMORY_SIZE; ++i) memory[i] = 0;
 	run(memory);
 	return 0;
 }
