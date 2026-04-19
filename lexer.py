@@ -21,6 +21,9 @@ def token_generator(src: str) -> Iterator[tuple[Token, int, int]]:
     """
     Generator for the program tokens from a generic source string,
     each token is annotated with the position in the file (row, col)
+
+    This generator is meant to never terminate, but instead keeps
+    yielding the `END` token
     """
     LANGUAGE_TOKENS = {
         '+': Token.PLUS,
@@ -74,3 +77,32 @@ class Lexer:
 
     def next(self):
         self.curr = next(self.tokens)
+
+    def consume(self) -> tuple[Token, int, int]:
+        tmp = self.peek()
+        self.next()
+        return tmp
+
+
+if __name__ == '__main__':
+    import itertools
+
+    original_source = "+++[-<][.,"
+    lexer = Lexer(original_source)
+
+    token_stream = map(
+        lambda self: self.consume(),
+        itertools.repeat(lexer)
+    )
+
+    reconstructed_source = ''.join(
+        map(
+            lambda t: t[0].value,
+            itertools.takewhile(
+                lambda t: t[0] != Token.END,
+                token_stream
+            )
+        )
+    )
+
+    assert(original_source == reconstructed_source)
