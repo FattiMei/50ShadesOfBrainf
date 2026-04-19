@@ -5,6 +5,9 @@ from enum import Enum
 from typing import Iterator
 
 
+TEST_SOURCE = "+++[.->[++--]><].[]"
+
+
 class Token(Enum):
     PLUS        = '+'
     MINUS       = '-'
@@ -15,6 +18,9 @@ class Token(Enum):
     OPENPAREN   = '['
     CLOSEDPAREN = ']'
     END         = 0
+
+    def get_token_repr(self) -> str:
+        return self.value
 
 
 def token_generator(src: str) -> Iterator[tuple[Token, int, int]]:
@@ -56,18 +62,10 @@ class Lexer:
     """
     This class has been designed to support a recursive descent parser
     that needs to look ahead at the next token without consuming it
-    """
-    LANGUAGE_TOKENS = {
-        '+': Token.PLUS,
-        '-': Token.MINUS,
-        '<': Token.SHIFTL,
-        '>': Token.SHIFTR,
-        ',': Token.GETC,
-        '.': Token.PUTC,
-        '[': Token.OPENPAREN,
-        ']': Token.CLOSEDPAREN
-    }
 
+    This class is parametric on the type of the token generator and
+    can potentially be reused on other projects
+    """
     def __init__(self, source: str):
         self.tokens = token_generator(source)
         self.curr = next(self.tokens)
@@ -87,8 +85,7 @@ class Lexer:
 if __name__ == '__main__':
     import itertools
 
-    original_source = "+++[-<][.,"
-    lexer = Lexer(original_source)
+    lexer = Lexer(TEST_SOURCE)
 
     token_stream = map(
         lambda self: self.consume(),
@@ -105,4 +102,4 @@ if __name__ == '__main__':
         )
     )
 
-    assert(original_source == reconstructed_source)
+    assert(TEST_SOURCE == reconstructed_source)

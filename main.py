@@ -7,6 +7,10 @@ code generation for multiple targets
 """
 
 
+from lexer import Lexer
+from parser import Parser
+
+
 import ir
 import opt
 import parser
@@ -37,10 +41,22 @@ def parse_cmd_line_args():
 
 
 if __name__ == '__main__':
+    """
     args = parse_cmd_line_args()
 
     with open(args.input_file, 'r') as file:
         src = file.read()
+    """
+    with open('samples/hello.b', 'r') as file:
+        src = file.read()
+
+    lexer = Lexer(src)
+    parser = Parser(lexer)
+    program = parser.run()
+
+    code_generator = codegen.CGenerator()
+    print(code_generator.generate(program))
+    exit()
 
     program = parser.parse_source(src)
     if program is None:

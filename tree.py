@@ -57,12 +57,12 @@ class Statement(TreeNode):
     This class is designed to be generic about the type
     of statement. It could be a token or an instruction
     """
-    def __init__(self, stat = None, parent: TreeNode = None):
+    def __init__(self, stmt = None, parent: TreeNode = None):
         super().__init__(parent)
-        self.stat = stat
+        self.stmt = stmt
 
     def __repr__(self) -> str:
-        return f'Statement({self.stat})'
+        return f'Statement({self.stmt})'
 
 
 def update_parent_relations(entry_point: TreeNode):
