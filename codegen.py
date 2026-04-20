@@ -44,8 +44,20 @@ class CGenerator(AbstractGenerator):
             self._push_line('while (*memory != 0) {', indent)
             self._generate(entry_point.body, indent+1)
             self._push_line('}', indent)
-        elif type(entry_point) == tree.Statement:
-            pass # TODO
+        elif type(entry_point) == tree.Increment:
+            self._push_line(f'*memory += {entry_point.imm};', indent)
+        elif type(entry_point) == tree.Decrement:
+            self._push_line(f'*memory -= {entry_point.imm};', indent)
+        elif type(entry_point) == tree.MoveLeft:
+            self._push_line(f'memory += {entry_point.imm};', indent)
+        elif type(entry_point) == tree.MoveRight:
+            self._push_line(f'memory -= {entry_point.imm};', indent)
+        elif type(entry_point) == tree.GetChar:
+            self._push_line('*memory = getchar();', indent)
+        elif type(entry_point) == tree.PutChar:
+            self._push_line('putchar(*memory);', indent)
+        else:
+            assert False, "unreachable"
 
     def generate(self, entry_point: tree.TreeNode) -> str:
         self.lines.clear()

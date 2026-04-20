@@ -60,7 +60,7 @@ class Parser:
 
         body = self.block()
         if self.expect(Token.CLOSEDPAREN):
-            return tree.Loop(body)
+            return tree.Loop(body, source_pos=(row,col))
 
         self.error(f'In loop opened at {(row,col)} expected `]` but found EOF')
         return tree.EmptyNode()

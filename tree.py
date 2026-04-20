@@ -8,6 +8,7 @@ for example in detecting empty loops or similar structures
 
 
 from enum import Enum
+from lexer import Token
 
 
 class TreeNode:
@@ -52,17 +53,87 @@ class Loop(TreeNode):
         return f'Loop({self.body})'
 
 
-class Statement(TreeNode):
-    """
-    This class is designed to be generic about the type
-    of statement. It could be a token or an instruction
-    """
-    def __init__(self, stmt = None, parent: TreeNode = None):
+def Statement(token: Token, parent: TreeNode = None):
+    token_stmt_map = {
+        Token.PLUS: Increment,
+        Token.MINUS: Decrement,
+        Token.SHIFTL: MoveLeft,
+        Token.SHIFTR: MoveRight,
+        Token.GETC: GetChar,
+        Token.PUTC: PutChar
+    }
+
+    return token_stmt_map[token](parent=parent)
+
+
+class Increment(TreeNode):
+    def __init__(self, imm: int = 1, parent: TreeNode = None):
         super().__init__(parent)
-        self.stmt = stmt
+        self.imm = imm
+
+    def get_token_repr(self) -> str:
+        return '+' * self.imm
 
     def __repr__(self) -> str:
-        return f'Statement({self.stmt})'
+        return f'Increment({self.imm})'
+
+
+class Decrement(TreeNode):
+    def __init__(self, imm: int = 1, parent: TreeNode = None):
+        super().__init__(parent)
+        self.imm = imm
+
+    def get_token_repr(self) -> str:
+        return '-' * self.imm
+
+    def __repr__(self) -> str:
+        return f'Decrement({self.imm})'
+
+
+class MoveLeft(TreeNode):
+    def __init__(self, imm: int = 1, parent: TreeNode = None):
+        super().__init__(parent)
+        self.imm = imm
+
+    def get_token_repr(self) -> str:
+        return '<' * self.imm
+
+    def __repr__(self) -> str:
+        return f'MoveLeft({self.imm})'
+
+
+class MoveRight(TreeNode):
+    def __init__(self, imm: int = 1, parent: TreeNode = None):
+        super().__init__(parent)
+        self.imm = imm
+
+    def get_token_repr(self) -> str:
+        return '>' * self.imm
+
+    def __repr__(self) -> str:
+        return f'MoveRight({self.imm})'
+
+
+class GetChar(TreeNode):
+    def __init__(self, parent: TreeNode = None):
+        super().__init__(parent)
+
+    def get_token_repr(self) -> str:
+        return ','
+
+    def __repr__(self) -> str:
+        return 'GetChar()'
+
+
+class PutChar(TreeNode):
+    def __init__(self, parent: TreeNode = None):
+        super().__init__(parent)
+
+    def get_token_repr(self) -> str:
+        return ','
+
+    def __repr__(self) -> str:
+        return 'PutChar()'
 
 
 def update_parent_relations(entry_point: TreeNode):
