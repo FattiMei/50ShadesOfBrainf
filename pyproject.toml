@@ -1,0 +1,15 @@
+[project]
+name = "brainf"
+version = "0.0.0"
+description = "Compiler and codesign infrastructure for the Brainfuck language"
+authors = [{ name = "Matteo Mei" }]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = [
+  'brainf',
+  'test'
+]

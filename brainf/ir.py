@@ -31,6 +31,7 @@ class BasicBlock:
     # default mutable arguments are a source of bugs                         v
     def __init__(self, label: int = None, instructions: list[Instruction] = None):
         self.label = label
+        self.predecessors = []
 
         if instructions is None:
             self.instructions = []
@@ -50,6 +51,9 @@ class BasicBlock:
             return []
 
         return [terminator.fallthrough_block, terminator.target_block]
+
+    def get_predecessors(self) -> list["BasicBlock"]:
+        return self.predecessors
 
     def deepcopy(self) -> "BasicBlock":
         return BasicBlock(
@@ -87,8 +91,8 @@ class Program:
     """
     def __init__(self, basic_blocks: list[BasicBlock]):
         self.basic_blocks = basic_blocks
-        self.ir_flags = set()
 
+        self.ir_flags = set()
         self.ir_flags.add(IrFlags.ORIGINAL_INSTRUCTIONS)
 
     def get_entry_point(self) -> BasicBlock:
@@ -153,8 +157,6 @@ class Increment(Instruction):
         return '+' * self.imm
 
     def get_signed_imm(self) -> int:
-        """
-        """
         return self.imm
 
     def __repr__(self) -> str:
@@ -226,10 +228,10 @@ class PutChar(Instruction):
 
 
 class BranchIfZero(Instruction):
-    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock, debug_info = None):
+    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock, source_pos = None):
         self.target_block = target_block
         self.fallthrough_block = fallthrough_block
-        self.debug_info = debug_info
+        self.source_pos = source_pos
 
     def get_token(self) -> str:
         return '['
@@ -239,10 +241,10 @@ class BranchIfZero(Instruction):
 
 
 class BranchIfNotZero(Instruction):
-    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock, debug_info = None):
+    def __init__(self, target_block: BasicBlock, fallthrough_block: BasicBlock, source_pos = None):
         self.target_block = target_block
         self.fallthrough_block = fallthrough_block
-        self.debug_info = debug_info
+        self.source_pos = source_pos
 
     def get_token(self) -> str:
         return ']'
