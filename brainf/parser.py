@@ -114,8 +114,9 @@ def parse_source(src: str) -> ir.Program:
             basic_blocks.append(new)
 
             if len(bb_stack) == 0:
-                print(f"ERROR: found `]` at ({row},{col}) but the corresponding `[` was never opened")
-                return None
+                raise SyntaxError(
+                    f"ERROR: found `]` at ({row},{col}) but the corresponding `[` was never opened"
+                )
 
             old = bb_stack.pop()
             old.get_terminator().target_block = new
@@ -135,7 +136,8 @@ def parse_source(src: str) -> ir.Program:
     # in a well formed program all the parenthesis should be closed
     if len(bb_stack) > 0:
         missing_closing = [bb.get_terminator().source_pos for bb in bb_stack]
-        print(f"ERROR: some parenthesis are still to be closed at {missing_closing}")
-        return None
+        raise SyntaxError(
+            f"ERROR: some parenthesis are still to be closed at {missing_closing}"
+        )
 
     return ir.Program(basic_blocks)
