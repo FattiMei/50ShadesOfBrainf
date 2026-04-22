@@ -7,7 +7,7 @@ other passes may affect the CFG
 """
 
 
-import ir
+from brainf import ir
 import itertools
 
 
@@ -70,19 +70,5 @@ def instruction_fusion_pass(program: ir.Program):
     or `<<<>><' by which pairs of consecutive +- can be elided.
     Programs in the samples/ directory don't show this inefficiency
     """
-    end = False
-    curr = program.get_entry_point()
-
-    while not end:
-        instruction_fuse(curr)
-
-        terminator = curr.get_terminator()
-        if type(terminator) == ir.Return:
-            end = True
-        else:
-            curr = terminator.fallthrough_block
-
-    # This doesn't work and I don't know why
-    # for basic_block in program.basic_blocks:
-    #     print('optimizing...')
-    #     instruction_fuse(basic_block)
+    for basic_block in program.basic_blocks:
+        instruction_fuse(basic_block)
