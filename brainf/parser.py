@@ -80,58 +80,59 @@ def parse_source(src: str) -> ir.Program:
     bb_stack = []
 
     for (token, row, col) in token_generator(src):
-        if token == Token.PLUS:
-            curr.append(ir.Increment())
-        elif token == Token.MINUS:
-            curr.append(ir.Decrement())
-        elif token == Token.SHIFTL:
-            curr.append(ir.MoveLeft())
-        elif token == Token.SHIFTR:
-            curr.append(ir.MoveRight())
-        elif token == Token.GETC:
-            curr.append(ir.GetChar())
-        elif token == Token.PUTC:
-            curr.append(ir.PutChar())
+        match token:
+            case Token.PLUS:
+                curr.append(ir.Increment())
+            case Token.MINUS:
+                curr.append(ir.Decrement())
+            case Token.SHIFTL:
+                curr.append(ir.MoveLeft())
+            case Token.SHIFTR:
+                curr.append(ir.MoveRight())
+            case Token.GETC:
+                curr.append(ir.GetChar())
+            case Token.PUTC:
+                curr.append(ir.PutChar())
 
-        # we are at the end of the current basic block
-        elif token == Token.OPENPAREN:
-            new = next(bb_gen)
-            basic_blocks.append(new)
+            # we are at the end of the current basic block
+            case Token.OPENPAREN:
+                new = next(bb_gen)
+                basic_blocks.append(new)
 
-            curr.append(
-                ir.BranchIfZero(
-                    target_block=None, # we don't know it yet
-                    fallthrough_block=new,
-                    source_pos=(row,col)
-                )
-            )
-
-            bb_stack.append(curr)
-            curr = new
-
-        elif token == Token.CLOSEDPAREN:
-            new = next(bb_gen)
-            basic_blocks.append(new)
-
-            if len(bb_stack) == 0:
-                raise SyntaxError(
-                    f"ERROR: found `]` at ({row},{col}) but the corresponding `[` was never opened"
+                curr.append(
+                    ir.BranchIfZero(
+                        target_block=None, # we don't know it yet
+                        fallthrough_block=new,
+                        source_pos=(row,col)
+                    )
                 )
 
-            old = bb_stack.pop()
-            old.get_terminator().target_block = new
+                bb_stack.append(curr)
+                curr = new
 
-            curr.append(
-                ir.BranchIfNotZero(
-                    target_block=old.get_terminator().fallthrough_block,
-                    fallthrough_block=new
+            case Token.CLOSEDPAREN:
+                new = next(bb_gen)
+                basic_blocks.append(new)
+
+                if len(bb_stack) == 0:
+                    raise SyntaxError(
+                        f"ERROR: found `]` at ({row},{col}) but the corresponding `[` was never opened"
+                    )
+
+                old = bb_stack.pop()
+                old.get_terminator().target_block = new
+
+                curr.append(
+                    ir.BranchIfNotZero(
+                        target_block=old.get_terminator().fallthrough_block,
+                        fallthrough_block=new
+                    )
                 )
-            )
-            curr = new
+                curr = new
 
-        elif token == Token.END:
-            curr.append(ir.Return())
-            break
+            case Token.END:
+                curr.append(ir.Return())
+                break
 
     # in a well formed program all the parenthesis should be closed
     if len(bb_stack) > 0:

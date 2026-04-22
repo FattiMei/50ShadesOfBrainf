@@ -4,6 +4,8 @@ version = "0.0.0"
 description = "Compiler and codesign infrastructure for the Brainfuck language"
 authors = [{ name = "Matteo Mei" }]
 
+requires-python = ">3.10"
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
@@ -11,5 +13,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = [
   'brainf',
-  'test'
+  'brainf.opt',
+  'brainf.codegen',
 ]
