@@ -39,9 +39,17 @@ class BasicBlock:
             self.instructions = instructions
 
     def append(self, instr: Instruction):
+        """
+        Appends an instruction to the end of the block, it's not
+        guaranteed to leave the block into a valid state.
+        """
         self.instructions.append(instr)
 
     def get_terminator(self) -> Instruction:
+        """
+        Assuming the block is in a valid state, the last
+        instruction is the terminator
+        """
         return self.instructions[-1]
 
     def get_successors(self) -> list["BasicBlock"]:
@@ -74,6 +82,9 @@ class BasicBlock:
 
         return is_terminator_branch and are_other_non_branch
 
+    def is_inner_loop(self) -> bool:
+        return self in self.get_successors()
+
     def __repr__(self) -> str:
         return f'BasicBlock({self.label}, {self.instructions})'
 
@@ -85,21 +96,40 @@ class Program:
 
     It will be the input of the optimization passes and the code generation.
     It will store important flags about the ir used in its blocks:
-    * contains fused operators?
-    * are only original instructions?
-    * ...
+      * contains fused operators?
+      * are only original instructions?
+      * ...
     """
     def __init__(self, basic_blocks: list[BasicBlock]):
         self.basic_blocks = basic_blocks
+        self._make_child_parent_connection()
 
         self.ir_flags = set()
         self.ir_flags.add(IrFlags.ORIGINAL_INSTRUCTIONS)
 
     def get_entry_point(self) -> BasicBlock:
+        """
+        Assuming the entry point is always the first block
+        """
         return self.basic_blocks[0]
 
     def get_ir_flags(self) -> set[IrFlags]:
+        """
+        Returns the kind of operations that have been
+        """
         return self.ir_flags
+
+    def _make_child_parent_connection(self):
+        """
+        Add to each basic block the predecessor objects
+        """
+        for basic_block in self.basic_blocks:
+            basic_block.predecessors.clear()
+
+        # we don't have repetitions because each parent is visited once
+        for parent in self.basic_blocks:
+            for child in basic_block.get_successors():
+                child.predecessors.append(parent)
 
     def deepcopy(self) -> "Program":
         # only copying the basic blocks without updating
