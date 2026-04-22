@@ -1,6 +1,6 @@
 import unittest
 from brainf import parser
-from brainf.codegen.transpile import generate_original_src
+from brainf.codegen.transpiler import generate_original_src
 
 
 class TestParser(unittest.TestCase):
