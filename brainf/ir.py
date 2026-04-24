@@ -104,20 +104,11 @@ class Program:
         self.basic_blocks = basic_blocks
         self._make_child_parent_connection()
 
-        self.ir_flags = set()
-        self.ir_flags.add(IrFlags.ORIGINAL_INSTRUCTIONS)
-
     def get_entry_point(self) -> BasicBlock:
         """
         Assuming the entry point is always the first block
         """
         return self.basic_blocks[0]
-
-    def get_ir_flags(self) -> set[IrFlags]:
-        """
-        Returns the kind of operations that have been
-        """
-        return self.ir_flags
 
     def _make_child_parent_connection(self):
         """
@@ -128,7 +119,7 @@ class Program:
 
         # we don't have repetitions because each parent is visited once
         for parent in self.basic_blocks:
-            for child in basic_block.get_successors():
+            for child in parent.get_successors():
                 child.predecessors.append(parent)
 
     def deepcopy(self) -> "Program":
@@ -291,11 +282,14 @@ class Return(Instruction):
 
     I also plan on using this instruction for the runtimes
     """
-    def __init__(self):
-        pass
+    def __init__(self, returncode: int = 0):
+        """
+        Any nonzero return value indicate an infinite loop
+        """
+        self.returncode = returncode
 
     def get_token(self) -> str:
         return ''
 
     def __repr__(self) -> str:
-        return 'Return()'
+        return f'Return({self.returncode})'

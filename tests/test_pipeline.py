@@ -25,3 +25,7 @@ def test_pipeline(filename: str):
 
     assert(program.are_bb_well_formed())
     assert(program.are_bb_reachable())
+
+    for basic_block in program.basic_blocks:
+        for successor in basic_block.get_successors():
+            assert(basic_block in successor.get_predecessors())
