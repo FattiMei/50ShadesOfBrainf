@@ -23,14 +23,14 @@ def instruction_fuse(basic_block: ir.BasicBlock) -> bool:
         return instr_type
 
     worklist = []
-    has_fused = False
+    success = False
 
     groups = itertools.groupby(basic_block.instructions, key=fuse_map)
     for key, group in groups:
         # there is repetition in this logic, I wonder if I can do better...
         # for now I'll leave it like that
         if key == ir.Increment:
-            has_fused = True
+            success = True
             # this sum doesn't take into accounts the signs!!!
             # the result is obviously wrong and it generates only ir.Increment
             # or ir.MoveRight instructions
@@ -40,7 +40,7 @@ def instruction_fuse(basic_block: ir.BasicBlock) -> bool:
             elif imm < 0:
                 worklist.append(ir.Decrement(-imm))
         elif key == ir.MoveRight:
-            has_fused = True
+            success = True
 
             imm = sum(map(lambda instr: instr.get_signed_imm(), group))
             if imm > 0:
@@ -55,10 +55,10 @@ def instruction_fuse(basic_block: ir.BasicBlock) -> bool:
     for instr in worklist:
         basic_block.instructions.append(instr)
 
-    return has_fused
+    return success
 
 
-def instruction_fusion_pass(program: ir.Program):
+def instruction_fusion_pass(program: ir.Program) -> bool:
     """
     This function applies a non CFG-altering transformation
     on all basic blocks of a program. It is responsible of
@@ -71,11 +71,9 @@ def instruction_fusion_pass(program: ir.Program):
     or `<<<>><' by which pairs of consecutive +- can be elided.
     Programs in the samples/ directory don't show this inefficiency
     """
-    has_fused = False
+    success = False
 
     for basic_block in program.basic_blocks:
-        has_fused |= instruction_fuse(basic_block)
+        success |= instruction_fuse(basic_block)
 
-    if has_fused:
-        program.ir_flags.add(ir.IrFlags.FUSED_INSTRUCTIONS)
-        program.ir_flags.remove(ir.IrFlags.ORIGINAL_INSTRUCTIONS)
+    return success
