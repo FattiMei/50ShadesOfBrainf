@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 
 from brainf import parser
+from brainf.opt.loop import annotate_infinite_loops_pass
 from brainf.codegen.transpiler import generate_original_src
 
 
@@ -17,6 +18,7 @@ def test_pipeline(filename: str):
         src = file.read()
 
     program = parser.parse_source(src)
+    annotate_infinite_loops_pass(program)
 
     # this is just the composition of parser and transpiler
     filtered_src = ''.join(filter(lambda c: c in parser.LANGUAGE_TOKENS, src))

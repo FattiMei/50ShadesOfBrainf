@@ -15,7 +15,22 @@ def generate_original_src(program: ir.Program) -> str:
 
         terminator = curr.get_terminator()
         if type(terminator) == ir.Return:
-            end = True
+            if terminator.returncode == 0:
+                # this is the only exit point of the program
+                end = True
+            else:
+                # if the return code is not 0, this means
+                # we have hit an infinite loop
+                #
+                # since there is no fallthrough block because we
+                # have substituted the branch instruction with the
+                # return instruction, we go back to the parent
+                res += ']'
+
+                parent = curr.get_predecessors()
+                assert(len(parent) == 1)
+
+                curr = parent[0].get_terminator().target_block
         else:
             curr = terminator.fallthrough_block
 
@@ -70,7 +85,13 @@ def generate_c(program: ir.Program) -> str:
                 push_line('}', indent)
                 curr = terminator.fallthrough_block
             case ir.Return:
-                end = True
+                if terminator.returncode == 0:
+                    end = True
+                else:
+                    push_line('return;', indent)
+                    indent -= 1
+                    push_line('}', indent)
+                    curr = curr.get_predecessors()[0].get_terminator().target_block
             case _:
                 assert(False)
 
