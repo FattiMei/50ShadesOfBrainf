@@ -40,7 +40,7 @@ def generate_original_src(program: ir.Program) -> str:
 def generate_c(program: ir.Program) -> str:
     """
     Generates the C code that implements the program as a function
-    with signature `void run(char* memory)`.
+    with signature `int run(char* memory)`.
 
     Internally calls getchar() and putchar()
     """
@@ -50,7 +50,7 @@ def generate_c(program: ir.Program) -> str:
     def push_line(l: str, indent: int):
         lines.append('\t' * indent + l)
 
-    push_line('void run(char* memory) {', indent)
+    push_line('int run(char* memory) {', indent)
     indent = 1
 
     end = False
@@ -88,13 +88,14 @@ def generate_c(program: ir.Program) -> str:
                 if terminator.returncode == 0:
                     end = True
                 else:
-                    push_line('return;', indent)
+                    push_line('return 1;', indent)
                     indent -= 1
                     push_line('}', indent)
                     curr = curr.get_predecessors()[0].get_terminator().target_block
             case _:
                 assert(False)
 
+    push_line('return 0;', indent)
     push_line('}', indent=0)
 
     return '\n'.join(lines)

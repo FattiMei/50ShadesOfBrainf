@@ -1,4 +1,7 @@
-void run(char *memory);
+#include <stdio.h>
+
+
+int run(char *memory);
 
 
 #ifndef MEMORY_SIZE
@@ -10,6 +13,12 @@ char memory[MEMORY_SIZE] = {0};
 
 
 int main() {
-	run(memory);
+	int ok = run(memory);
+
+	if (ok != 0) {
+		printf("Found an infinite loop... quitting\n");
+		return 1;
+	}
+
 	return 0;
 }

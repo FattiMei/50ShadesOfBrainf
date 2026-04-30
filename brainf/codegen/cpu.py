@@ -42,6 +42,8 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
     # of run(char*)
     lines += [f'mov %rdi, {head}']
 
+    # the iteration on the basic blocks in program order
+    # should be abstracted away
     while not end:
         lines += [f'.L{curr.label}:']
 
@@ -91,8 +93,13 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
                 curr = instr.fallthrough_block
 
             elif type(instr) == ir.Return:
+                lines += ['mov %rax, ${instr.returncode}']
                 lines += ['ret']
-                end = True
+
+                if instr.returncode == 0:
+                    end = True
+                else:
+                    curr = curr.get_predecessors()[0].get_terminator().target_block
 
     lines += ['']
 
@@ -167,8 +174,13 @@ def generate_armv6l(program: ir.Program) -> str:
                 curr = instr.fallthrough_block
 
             elif type(instr) == ir.Return:
+                lines += [f'mov r0, #{instr.returncode}']
                 lines += ['pop {fp, pc}']
-                end = True
+
+                if instr.returncode == 0:
+                    end = True
+                else:
+                    curr = curr.get_predecessors()[0].get_terminator().target_block
 
     lines += ['']
 
