@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-
 from brainf import ir
 from enum import Enum
 from typing import Iterator
