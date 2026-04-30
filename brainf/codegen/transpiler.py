@@ -1,4 +1,7 @@
 from brainf import ir
+from brainf.codegen.utils import push_line_functor
+from functools import partial
+
 
 
 def generate_original_src(program: ir.Program) -> str:
@@ -6,33 +9,13 @@ def generate_original_src(program: ir.Program) -> str:
     This function generates the unformatted source code from the IR
     """
     res = ''
-    end = False
-    curr = program.get_entry_point()
-
-    while not end:
-        for instr in curr.instructions:
+    for block in program.navigate_blocks():
+        for instr in block.instructions:
             res += instr.get_token()
 
-        terminator = curr.get_terminator()
-        if type(terminator) == ir.Return:
-            if terminator.returncode == 0:
-                # this is the only exit point of the program
-                end = True
-            else:
-                # if the return code is not 0, this means
-                # we have hit an infinite loop
-                #
-                # since there is no fallthrough block because we
-                # have substituted the branch instruction with the
-                # return instruction, we go back to the parent
-                res += ']'
-
-                parent = curr.get_predecessors()
-                assert(len(parent) == 1)
-
-                curr = parent[0].get_terminator().target_block
-        else:
-            curr = terminator.fallthrough_block
+        terminator = block.get_terminator()
+        if type(terminator) == ir.Return and terminator.returncode != 0:
+            res += ']'
 
     return res
 
@@ -45,18 +28,13 @@ def generate_c(program: ir.Program) -> str:
     Internally calls getchar() and putchar()
     """
     lines = []
+    push_line = partial(push_line_functor, acc=lines)
+
     indent = 0
-
-    def push_line(l: str, indent: int):
-        lines.append('\t' * indent + l)
-
     push_line('int run(char* memory) {', indent)
     indent = 1
 
-    end = False
-    curr = program.get_entry_point()
-
-    while not end:
+    for block in program.navigate_blocks():
         for instr in curr.instructions[:-1]:
             match type(instr):
                 case ir.Increment:
@@ -74,24 +52,19 @@ def generate_c(program: ir.Program) -> str:
                 case _:
                     assert(False)
 
-        terminator = curr.get_terminator()
+        terminator = block.get_terminator()
         match type(terminator):
             case ir.BranchIfZero:
                 push_line('while (*memory) {', indent)
                 indent += 1
-                curr = terminator.fallthrough_block
             case ir.BranchIfNotZero:
                 indent -= 1
                 push_line('}', indent)
-                curr = terminator.fallthrough_block
             case ir.Return:
-                if terminator.returncode == 0:
-                    end = True
-                else:
+                if terminator.returncode != 0:
                     push_line('return 1;', indent)
                     indent -= 1
                     push_line('}', indent)
-                    curr = curr.get_predecessors()[0].get_terminator().target_block
             case _:
                 assert(False)
 

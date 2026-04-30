@@ -1,4 +1,6 @@
 from brainf import ir
+from brainf.codegen.utils import push_line_functor
+from functools import partial
 
 
 # I could use an ir similar to the one used in the professor compiler
@@ -26,80 +28,73 @@ def generate_x86(program: ir.Program, head_register: str = '%rax', val_register:
     suffers from this phenomenon
     """
     lines = []
-    end = False
-    curr = program.get_entry_point()
+    indent = 1
+    push_line = partial(push_line_functor, acc=lines)
 
     head = head_register
     val = val_register
     assert(head != val)
 
-    lines += ['\t.data']
-    lines += ['\t.globl run']
-    lines += ['\t.text']
-    lines += ['run:']
+    push_line('.data', indent)
+    push_line('.globl run', indent)
+    push_line('.text', indent)
+
+    push_line('run:', 0)
 
     # %rdi should be the first argument in the call
     # of run(char*)
-    lines += [f'mov %rdi, {head}']
+    indent = 1
+    push_line(f'mov %rdi, {head}', indent)
 
     # the iteration on the basic blocks in program order
     # should be abstracted away
-    while not end:
-        lines += [f'.L{curr.label}:']
+    for block in program.navigate_blocks():
+        push_line(f'.L{block.label}:', indent=0)
 
-        for instr in curr.instructions:
+        for instr in block.instructions:
             if type(instr) == ir.Increment:
-                lines += [f'mov ({head}), {val}']
-                lines += [f'add ${instr.imm}, {val}']
-                lines += [f'mov {val}, ({head})']
+                push_line(f'mov ({head}), {val}', indent)
+                push_line(f'add ${instr.imm}, {val}', indent)
+                push_line(f'mov {val}, ({head})', indent)
 
             elif type(instr) == ir.Decrement:
-                lines += [f'mov ({head}), {val}']
-                lines += [f'sub ${instr.imm}, {val}']
-                lines += [f'mov {val}, ({head})']
+                push_line(f'mov ({head}), {val}', indent)
+                push_line(f'sub ${instr.imm}, {val}', indent)
+                push_line(f'mov {val}, ({head})', indent)
 
             elif type(instr) == ir.MoveLeft:
-                lines += [f'sub ${instr.imm}, {head}']
+                push_line(f'sub ${instr.imm}, {head}', indent)
 
             elif type(instr) == ir.MoveRight:
-                lines += [f'add ${instr.imm}, {head}']
+                push_line(f'add ${instr.imm}, {head}', indent)
 
             elif type(instr) == ir.GetChar:
                 # it should be a syscall to getchar()
                 assert(False)
 
             elif type(instr) == ir.PutChar:
-                lines += [f'push {head}']
-                lines += [f'mov ({head}), %rdi']
-                lines += ['call putchar']
-                lines += [f'pop {head}']
+                push_line(f'push {head}', indent)
+                push_line(f'mov ({head}), %rdi', indent)
+                push_line('call putchar', indent)
+                push_line(f'pop {head}', indent)
 
             elif type(instr) == ir.BranchIfZero:
                 target_block = instr.target_block
 
-                lines += [f'mov ({head}), {val}']
-                lines += [f'cmp $0, {val}']
-                lines += [f'jz .L{target_block.label}']
-
-                curr = instr.fallthrough_block
+                push_line(f'mov ({head}), {val}', indent)
+                push_line(f'cmp $0, {val}', indent)
+                push_line(f'jz .L{target_block.label}', indent)
 
             elif type(instr) == ir.BranchIfNotZero:
                 target_block = instr.target_block
 
-                lines += [f'mov ({head}), {val}']
-                lines += [f'cmp $0, {val}']
-                lines += [f'jnz .L{target_block.label}']
-
-                curr = instr.fallthrough_block
+                push_line(f'mov ({head}), {val}', indent)
+                push_line(f'cmp $0, {val}', indent)
+                push_line(f'jnz .L{target_block.label}', indent)
 
             elif type(instr) == ir.Return:
-                lines += ['mov %rax, ${instr.returncode}']
-                lines += ['ret']
-
-                if instr.returncode == 0:
-                    end = True
-                else:
-                    curr = curr.get_predecessors()[0].get_terminator().target_block
+                push_line(f'mov ${instr.returncode}, %rax', indent)
+                push_line('ret', indent)
 
     lines += ['']
 
@@ -112,75 +107,68 @@ def generate_armv6l(program: ir.Program) -> str:
     doesn't exist as there is a `strb` instruction
     """
     lines = []
-    end = False
-    curr = program.get_entry_point()
+    indent = 1
 
     head = 'r0'
     val  = 'r1'
 
-    lines += ['\t.globl run']
-    lines += ['\t.text']
-    lines += ['run:']
-    lines += ['push {fp, lr}']
+    push_line = partial(push_line_functor, acc=lines)
+    push_line('\t.globl run', indent)
+    push_line('\t.text', indent)
+    push_line('run:', 0)
 
-    while not end:
-        lines += [f'.L{curr.label}:']
+    indent = 1
+    push_line('push {fp, lr}', indent)
 
-        for instr in curr.instructions:
+    for block in program.navigate_blocks():
+        push_line(f'.L{block.label}:', indent)
+
+        for instr in block.instructions:
             if type(instr) == ir.Increment:
-                lines += [f'ldr {val}, [{head}]']
-                lines += [f'add {val}, #{instr.imm}']
-                lines += [f'strb {val}, [{head}]']
+                push_line(f'ldr {val}, [{head}]', indent)
+                push_line(f'add {val}, #{instr.imm}', indent)
+                push_line(f'strb {val}, [{head}]', indent)
 
             elif type(instr) == ir.Decrement:
-                lines += [f'ldr {val}, [{head}]']
-                lines += [f'sub {val}, #{instr.imm}']
-                lines += [f'strb {val}, [{head}]']
+                push_line(f'ldr {val}, [{head}]', indent)
+                push_line(f'sub {val}, #{instr.imm}', indent)
+                push_line(f'strb {val}, [{head}]', indent)
 
             elif type(instr) == ir.MoveLeft:
-                lines += [f'sub {head}, #{instr.imm}']
+                push_line(f'sub {head}, #{instr.imm}', indent)
 
             elif type(instr) == ir.MoveRight:
-                lines += [f'add {head}, #{instr.imm}']
+                push_line(f'add {head}, #{instr.imm}', indent)
 
             elif type(instr) == ir.GetChar:
                 # it should be a syscall to getchar()
                 assert(False)
 
             elif type(instr) == ir.PutChar:
-                lines += [f'push {{ {head} }}']
-                lines += [f'ldr r0, [{head}]']
-                lines += [f'bl putchar']
-                lines += [f'pop {{ {head} }}']
+                push_line(f'push {{ {head} }}', indent)
+                push_line(f'ldr r0, [{head}]', indent)
+                push_line(f'bl putchar', indent)
+                push_line(f'pop {{ {head} }}', indent)
 
             elif type(instr) == ir.BranchIfZero:
                 target_block = instr.target_block
 
-                lines += [f'ldr {val}, [{head}]']
-                lines += [f'and {val}, #255']
-                lines += [f'cmp {val}, #0']
-                lines += [f'beq .L{target_block.label}']
-
-                curr = instr.fallthrough_block
+                push_line(f'ldr {val}, [{head}]', indent)
+                push_line(f'and {val}, #255', indent)
+                push_line(f'cmp {val}, #0', indent)
+                push_line(f'beq .L{target_block.label}', indent)
 
             elif type(instr) == ir.BranchIfNotZero:
                 target_block = instr.target_block
 
-                lines += [f'ldr {val}, [{head}]']
-                lines += [f'and {val}, #255']
-                lines += [f'cmp {val}, #0']
-                lines += [f'bne .L{target_block.label}']
-
-                curr = instr.fallthrough_block
+                push_line(f'ldr {val}, [{head}]', indent)
+                push_line(f'and {val}, #255', indent)
+                push_line(f'cmp {val}, #0', indent)
+                push_line(f'bne .L{target_block.label}', indent)
 
             elif type(instr) == ir.Return:
-                lines += [f'mov r0, #{instr.returncode}']
-                lines += ['pop {fp, pc}']
-
-                if instr.returncode == 0:
-                    end = True
-                else:
-                    curr = curr.get_predecessors()[0].get_terminator().target_block
+                push_line(f'mov r0, #{instr.returncode}', indent)
+                push_line('pop {fp, pc}', indent)
 
     lines += ['']
 

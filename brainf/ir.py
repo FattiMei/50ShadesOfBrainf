@@ -11,6 +11,7 @@ as the nodes of a control flow graph.
 
 
 from enum import Enum
+from typing import Iterator
 from functools import reduce
 
 
@@ -109,6 +110,27 @@ class Program:
         Assuming the entry point is always the first block
         """
         return self.basic_blocks[0]
+
+    def navigate_blocks(self) -> Iterator[BasicBlock]:
+        """
+        Iterator of basic blocks along program order.
+        Program order means the loops are always inspected before
+        what comes after the loop
+        """
+        curr = self.get_entry_point()
+        end = False
+
+        while not end:
+            yield curr
+
+            terminator = curr.get_terminator()
+            if type(terminator) == Return:
+                if terminator.returncode == 0:
+                    end = True
+                else:
+                    curr = curr.get_predecessors()[0].get_terminator().target_block
+            else:
+                curr = terminator.fallthrough_block
 
     def _make_child_parent_connection(self):
         """
