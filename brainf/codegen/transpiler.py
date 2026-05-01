@@ -35,7 +35,7 @@ def generate_c(program: ir.Program) -> str:
     indent = 1
 
     for block in program.navigate_blocks():
-        for instr in curr.instructions[:-1]:
+        for instr in block.instructions[:-1]:
             match type(instr):
                 case ir.Increment:
                     push_line(f'*memory += {instr.imm};', indent)
