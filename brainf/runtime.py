@@ -16,8 +16,7 @@ class Runtime:
         It is left to the concrete implementation how to take the program and
         make it executable
         """
-        assert(10000 < cell_size < 1000000)
-        self.mem = ctypes.c_buffer(init=0, size=cell_size)
+        self.mem = bytes(cell_size)
         self.cell_size = cell_size
 
     def run(self, stdin=None) -> int:
@@ -29,13 +28,6 @@ class Runtime:
         has the `lib.run` attibute which is a callable
         """
         return self.lib.run(self.mem)
-
-    def reset(self):
-        """
-        Clears the memory tape
-        """
-        # maybe ctypes.memset??
-        raise NotImplemented
 
 
 def compile_shared_object(so_name: str, src: str, filetype: str, opt: str = ''):
@@ -75,6 +67,7 @@ class CRuntime(Runtime):
             compile_shared_object(tmp.name, c_src, filetype='c', opt=opt_level)
 
             self.lib = ctypes.CDLL(tmp.name)
+            self.lib.run.argtypes = [ctypes.c_char_p]
 
 
 class NativeRuntime(Runtime):
@@ -93,3 +86,4 @@ class NativeRuntime(Runtime):
             compile_shared_object(tmp.name, asm_src, filetype='assembler')
 
             self.lib = ctypes.CDLL(tmp.name)
+            self.lib.run.argtypes = [ctypes.c_char_p]
