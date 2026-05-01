@@ -139,3 +139,10 @@ def parse_source(src: str) -> ir.Program:
         )
 
     return ir.Program(basic_blocks)
+
+
+def parse_file(filename: str) -> ir.Program:
+    with open(filename, 'r') as file:
+        src = file.read()
+
+    return parse_source(src)
