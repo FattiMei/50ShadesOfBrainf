@@ -48,3 +48,23 @@ everything must be in order, especially when removing basic blocks from the grap
 I needed to add new IR nodes for operations that extend the computational model like:
   * adding an immediate instead of only 1
   * setting a cell to 0
+
+note that the compilation pipeline must be informed of those additions because not all targets support those new instructions. The current design adds to the program a set of flags which signal that specific transformations have been used.
+
+## Passes
+I plan on supporting passes that:
+  * recognize empty loops (`[]`) which become infinite loops
+  * detect `[-]` constructs and modify them into a *set cell to zero* instruction
+  * potentially do some optimizations on the register usage for removing unnecessary loads, but that's complex
+
+a pass in general must not alter the semantics. This has to be verified with A/B testing.
+
+## JIT
+The idea of JIT compilation of a BF program was born from the need of performing tests that verify semantic equivalence between programs. Two programs are said to be semantically equivalent if they produce the exact output and memory tape when given the exact input stream. Having the option of performing such test at runtime, without calling scripts and external programs will greatly simplify the development process.
+
+The major challenge is the handling of calls to `getchar` and `putchar`. In a runtime test, the caller should be able to control the input and output streams, however those calls will pollute *stdin* and *stdout*. Here are possible solutions:
+  1. do some kind of subprocess run
+  2. do some sketchy dynamic patch to the machine code
+  3. change the function signature and pass function pointers to the desired implementation
+
+(3) is interesting, although it would require improving the knowledge of the ABI, but there is still a problem. The `getchar` and `putchar` functions will likely be substituted by methods of some object, so the function pointer is not sufficient as one needs also the pointer to the object. This problem is made harder by the fact that the substitutes are python functions, do we need to JIT compile them also?
